@@ -24,7 +24,7 @@ async function getHotelData(hotelId) {
     <soapenv:Header/>
     <soapenv:Body>
         <xsd:HotelDetailsRequest>
-            <xsd1:loginDetails xsd1:email="marc.armengol@hyperguest.com" xsd1:password="HyperCert2022"/>
+            <xsd1:loginDetails xsd1:email="***@hyperguest.com" xsd1:password="****"/>
             <xsd:hotelId>${hotelId}</xsd:hotelId>
         </xsd:HotelDetailsRequest>
     </soap:Body>
