@@ -3,9 +3,12 @@ const json2csv = require('json2csv');
 const parser = require('xml2json');
 const fs = require('fs');
 const _ = require('lodash');
+const decrypt = require('./decrypt');
 
 const requestURL = "http://www.hotelston.com/ws/StaticDataServiceV2/StaticDataServiceHttpSoap12Endpoint/";
 
+const encryptedLoginData = "6002f7dcc4411698a85763938675f017ccccd8cc5af5f0219d493c843fb473a0d82e78feced17cd9bc115f2263c135d090d86b44db30568c73c9d88d8fd0e30f369f064aaac990ec1f9ada55a3fe8e5e";
+const loginData = JSON.parse(decrypt.decryptLoginData(encryptedLoginData));
 const config = {
     headers: {
         'SOAPAction': 'getHotelList',
@@ -20,15 +23,17 @@ async function getHotelData(hotelId) {
             'Content-Type': 'text/xml'
         }
     };
+
     const requestBody = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://request.v2.staticdataservice.ws.hotelston.com/xsd" xmlns:xsd1="http://types.v2.staticdataservice.ws.hotelston.com/xsd">
     <soapenv:Header/>
     <soapenv:Body>
         <xsd:HotelDetailsRequest>
-            <xsd1:loginDetails xsd1:email="***@hyperguest.com" xsd1:password="****"/>
+            <xsd1:loginDetails xsd1:email="${loginData.email}" xsd1:password="${loginData.password}"/>
             <xsd:hotelId>${hotelId}</xsd:hotelId>
         </xsd:HotelDetailsRequest>
     </soap:Body>
 </soap:Envelope>`;
+
     return axios.post(requestURL, requestBody, requestHeaders)
         .then(resp => {
             const hotelData = resp.data;
@@ -112,12 +117,12 @@ function AddHotelToFailedList(hotelId, error){
 async function getAllHotelsData(hotelsList) {
     const hotelsData = [];
     let responsesList;
-    // for (let i = 0; i < hotelsList.length; i++) {
-    for (let i = 0; i < 1000; i++) { 
+    for (let i = 0; i < hotelsList.length; i++) {
+    // for (let i = 0; i < 1000; i++) { 
         const hotel = hotelsList[i];
         const hotelId = hotel['id'];
         hotelsData.push(getHotelData(hotelId));
-        if ((i !== 0 && i % 100 === 0) || i === hotelsList.length - 1){
+        if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1){ // API limit of 4 concurrent hotel details requests.
         responsesList = await Promise.all(hotelsData);
         addRowsToCsvFile(responsesList);
         hotelsData.length = 0;
@@ -130,7 +135,7 @@ async function getAllHotelsData(hotelsList) {
 };
 
 function addRowsToCsvFile(data) {
-    const csvPath = './script-files/hotels-prod.csv';
+    const csvPath = './script-files/hotelsProd.csv';
     let rowData;
     for (let row of data){
         if (row){
