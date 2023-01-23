@@ -16,6 +16,53 @@ const config = {
     }
 };
 
+const hotelListRequestBody =
+    `<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:xsd="http://request.v2.staticdataservice.ws.hotelston.com/xsd" xmlns:xsd1="http://types.v2.staticdataservice.ws.hotelston.com/xsd">
+    <soap:Header/>
+    <soap:Body>
+        <xsd:HotelListRequest>
+            <xsd1:loginDetails xsd1:email="${loginData.email}" xsd1:password="${loginData.password}"/>
+        </xsd:HotelListRequest>
+    </soap:Body>
+    </soap:Envelope>`;
+
+// creating the request to get hotels list
+async function makeHotelListRequest() {
+    let allHotelsJson;
+    let allHotels;
+    const hotelsList = await axios.post(requestURL, hotelListRequestBody, config)
+        .then(resp => {
+            allHotels = resp.data;
+        }).catch(err => { console.log(err.response) });
+    return allHotels;
+};
+
+// send getHotelsList request and receive all hotelston hotels list
+async function getHotelsList() {
+    let hotelsList = [];
+    const allHotels = await makeHotelListRequest();
+    const allHotelsJsonString = parser.toJson(allHotels);
+    const allHotelsJson = JSON.parse(allHotelsJsonString);
+    const countries = allHotelsJson['soapenv:Envelope']['soapenv:Body']['xsd:HotelListResponse']['xsd:country'];
+    for (country of countries) {
+        if ("xsd:state" in country) {
+            const states = Array.isArray(country['xsd:state']) ? country['xsd:state'] : [country['xsd:state']];
+            for (state of states) {
+                const cities = Array.isArray(state['xsd:city']) ? state['xsd:city'] : [state['xsd:city']];
+                for (city of cities) {
+                    hotelsList = hotelsList.concat(city['xsd:hotel']);
+                }
+            }
+        } else {
+            const cities = Array.isArray(country['xsd:city']) ? country['xsd:city'] : [country['xsd:city']];
+            for (city of cities) {
+                hotelsList = hotelsList.concat(city['xsd:hotel']);
+            }
+        }
+    }
+    return hotelsList;
+}
+
 async function getHotelData(hotelId) {
     const requestHeaders = {
         headers: {
@@ -40,7 +87,7 @@ async function getHotelData(hotelId) {
             const hoteldetailsInJsonString = parser.toJson(hotelData);
             const jsonDetails = JSON.parse(hoteldetailsInJsonString);
             const hotelJson = jsonDetails["soapenv:Envelope"]["soapenv:Body"]["xsd:HotelDetailsResponse"]["xsd:hotel"];
-            if (hotelJson && jsonDetails['soapenv:Envelope']['soapenv:Body']['xsd:HotelDetailsResponse']['xsd1:success']['$t'] === 'true'){
+            if (hotelJson && jsonDetails['soapenv:Envelope']['soapenv:Body']['xsd:HotelDetailsResponse']['xsd1:success']['$t'] === 'true') {
                 log('pullSuccess', hotelId);
                 const hotelParsedData = parseHotelDetails(hotelJson);
                 return hotelParsedData;
@@ -54,7 +101,7 @@ async function getHotelData(hotelId) {
 };
 
 function parseHotelDetails(details) {
-    const data =  {
+    const data = {
         id: _.get(details, "xsd1:id"),
         name: _.get(details, "xsd1:name"),
         country: _.get(details, "xsd:address.xsd1:country"),
@@ -69,11 +116,11 @@ function parseHotelDetails(details) {
     return data;
 };
 
-function log(type, hotelId = 0, error = 0){
+function log(type, hotelId = 0, error = 0) {
     const logsFilePath = "./script-files/hotelstonLogsProd.JSON";
 
     let message = "";
-    switch (type){
+    switch (type) {
         case 'pullSuccess':
             message = `Data of hotel ${hotelId} was received successfully.`;
             break;
@@ -99,16 +146,16 @@ function log(type, hotelId = 0, error = 0){
     fs.appendFileSync(logsFilePath, JSON.stringify(logObj) + '\n');
 };
 
-function AddHotelToFailedList(hotelId, error){
+function AddHotelToFailedList(hotelId, error) {
     const failedHotelsFilePath = "./script-files/hotelsFailedProd.JSON";
     const failedHotelObj = {};
     const hotel = { hotelId, error };
-    if (!fs.existsSync(failedHotelsFilePath)){
+    if (!fs.existsSync(failedHotelsFilePath)) {
         failedHotelObj[hotelId] = hotel;
         fs.writeFileSync(failedHotelsFilePath, JSON.stringify(hotel));
     } else {
         const failedHotels = fs.readFileSync("./script-files/hotelsFailedProd.JSON");
-        const failedListObj= JSON.parse(failedHotels);
+        const failedListObj = JSON.parse(failedHotels);
         failedListObj[hotelId] = hotel;
         fs.writeFileSync(failedHotelsFilePath, JSON.stringify(failedListObj));
     }
@@ -118,14 +165,14 @@ async function getAllHotelsData(hotelsList) {
     const hotelsData = [];
     let responsesList;
     for (let i = 0; i < hotelsList.length; i++) {
-    // for (let i = 0; i < 1000; i++) { 
+        // for (let i = 0; i < 1000; i++) { 
         const hotel = hotelsList[i];
         const hotelId = hotel['id'];
         hotelsData.push(getHotelData(hotelId));
-        if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1){ // API limit of 4 concurrent hotel details requests.
-        responsesList = await Promise.all(hotelsData);
-        addRowsToCsvFile(responsesList);
-        hotelsData.length = 0;
+        if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
+            responsesList = await Promise.all(hotelsData);
+            addRowsToCsvFile(responsesList);
+            hotelsData.length = 0;
         }
     }
     if (hotelsData.length > 0) {
@@ -137,9 +184,9 @@ async function getAllHotelsData(hotelsList) {
 function addRowsToCsvFile(data) {
     const csvPath = './script-files/hotelsProd.csv';
     let rowData;
-    for (let row of data){
-        if (row){
-            if (!fs.existsSync(csvPath)){
+    for (let row of data) {
+        if (row) {
+            if (!fs.existsSync(csvPath)) {
                 rowData = json2csv.parse(row, { header: true });
             } else {
                 rowData = json2csv.parse(row, { header: false });
@@ -157,13 +204,22 @@ function addRowsToCsvFile(data) {
     }
 };
 
-async function main(){
+async function readFileFromAWS(path) {
+    let hotelsList;
+    await axios.get(path).then(response => {
+        hotelsList = response.data.hotels;
+    });
+    return hotelsList;
+}
+
+async function main() {
     const begin = new Date();
     // const hotelsList = await getHotelsList(); // using a request to hotelSton
     // const hotelsList = readXmlLocalFile();
     // fs.writeFileSync('/home/pinhas/Documents/PMS/Hotelston/onlyHotels.json', JSON.stringify(hotelsList));
-    const hotelsList = JSON.parse(fs.readFileSync('./script-files/onlyHotels-formated.json'));
-    await getAllHotelsData(hotelsList.hotels);
+    const hotelsListPath = "https://amadeus-hotels.s3.eu-central-1.amazonaws.com/hotelston-hotels/onlyHotels-formated.json?response-content-disposition=inline&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGgaDGV1LWNlbnRyYWwtMSJHMEUCIE7PYpv9EySEHXgx4NTgTHABhnx%2Bi3hNw11UMG%2BvGlhmAiEA4APn6vu7Mn8OUidMELIKnH8tPz06TahZqelUlWw94N8qhAMI0f%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARABGgw3MjI4NjE1OTk2MDciDKo3X6irwF2Y08dcGSrYAnGLEP5a%2BuWM5QD8Y9888ZggbquyqsNMpMds%2FNk3nDbqUiLEX2HkONqaiuJUsjlkVuXqOVZTGQnxYWOGr90aTVoCsZ9RCEutoFn93MQd3eZxr0Euv12F1kVeikXU4UPyf9EWe9OgEVOOZhUB2FL1p5SHbZF2mWxCs%2BTtRIFppAh0TSVPySBe3Qz0NIc%2F2Cnz51u3HRXhr8TugWfMF782rsjbbkjkIEtBQlhCDYmkl1tOv%2F3Qt%2BLMfmV186ekNu0MpMoQeuyv7lMj9MrfcvaEgLmiTpgeyeesLmID7hL7Qk9eZKdtO0pbSOv73b0Mq302rj0ifKPvc%2BnKCOl0UvkpNLrOyOTvNRS73L6HuETXlpMnJ6D0O5QF5G%2BqTWnCjx9uw1Q95l96d2TLaHuFPTpWTkP99iTx6srEmDIJuYqtiaY3dtG%2BjBKMkvJXxo%2FQ1l71cn%2FiIkUXjNwRMNX0uJ4GOrMCPvu24n1N2JwhZ6K%2B6%2FqcomFBI45zqhiTbp3SEpr7M3AUJEviHwg1pknzmizM3N%2FNF9namUmwDu5Cid0tSouq75J7nYLMuSNIznvMfpY6wU2v767I3WsDwdaYAZnLn%2F%2Fu0zUzSUid7Ptt4ZhTpSN%2FEE9yc4zjdLQoL2Za0o9aIUZOMJXbBmRHPV5h440xdf8xWDQima6xq4Wr3a1cPyrq0oZMyNIw0%2FKudy%2BC0wxYsrHJfWIFDd%2BXFh%2Frf8vHuuRF29vElOnWlTF%2BfR3fD7H5AmWm5%2F5p%2FOROUxLwpMaQd6NZHwyUOnoXrLUtxZCYAh%2BBLOLAvGZX3Rb7oWjyYrSdFOxOAk7Umc%2B7UkyXs4wRte%2F4ghudm8FtvbvKvsY0bZs2TiHkMCaZqjdYXTMAUVOo6tCxpw%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20230123T082557Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=ASIA2QTPIVN32GRPSJR7%2F20230123%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Signature=f2018182144bbce4b2498f2de5fbb855e2258c05eda32677ff866bdceadf6fab";
+    const hotels = await readFileFromAWS(hotelsListPath);
+    await getAllHotelsData(hotels);
     const end = new Date();
     const totalRunningTime = end - begin;
     console.log(getMinDiff(begin, end));
@@ -171,35 +227,13 @@ async function main(){
 
 function getMinDiff(startDate, endDate) {
     const msInMinute = 60 * 1000;
-  
+
     return Math.round(
         Math.abs(endDate - startDate) / msInMinute
     );
-  }
+}
 
 main();
-
-
-const hotelListRequestBody =
-    `<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:xsd="http://request.v2.staticdataservice.ws.hotelston.com/xsd" xmlns:xsd1="http://types.v2.staticdataservice.ws.hotelston.com/xsd">
-    <soap:Header/>
-    <soap:Body>
-        <xsd:HotelListRequest>
-            <xsd1:loginDetails xsd1:email="marc.armengol@hyperguest.com" xsd1:password="HyperCert2022"/>
-        </xsd:HotelListRequest>
-    </soap:Body>
-    </soap:Envelope>`;
-
-// creating the request to get hotels list
-async function makeHotelListRequest() {
-    let allHotelsJson;
-    let allHotels;
-    const hotelsList = await axios.post(requestURL, hotelListRequestBody, config)
-    .then(resp => {
-        allHotels = resp.data;
-}).catch(err => {console.log(err.response)});
-    return allHotels;
-};
 
 
 // reading all hotels from xml file and convert it to array of hotels.
@@ -214,14 +248,14 @@ function readXmlLocalFile() {
     // const jsonList = JSON.parse(res);
     const jsonList = require(file);
     const countries = jsonList['soapenv:Envelope']['soapenv:Body']['HotelListResponse']['country'];
-    for (country of     countries){
-        if ("state" in country){
+    for (country of countries) {
+        if ("state" in country) {
             const states = Array.isArray(country['state']) ? country['state'] : [country['state']];
-            for (state of states){
+            for (state of states) {
                 const cities = Array.isArray(state['city']) ? state['city'] : [state['city']];
-                for (city of cities){ 
-                    if (_.isArray(city['hotel'])){
-                        for (hotel of city['hotel']){
+                for (city of cities) {
+                    if (_.isArray(city['hotel'])) {
+                        for (hotel of city['hotel']) {
                             hotelsList.push(hotel);
                         }
                     } else {
@@ -231,9 +265,9 @@ function readXmlLocalFile() {
             }
         } else {
             const cities = Array.isArray(country['city']) ? country['city'] : [country['city']];
-            for (city of cities){
-                if (_.isArray(city['hotel'])){
-                    for (hotel of city['hotel']){
+            for (city of cities) {
+                if (_.isArray(city['hotel'])) {
+                    for (hotel of city['hotel']) {
                         hotelsList.push(hotel);
                     }
                 } else {
@@ -242,32 +276,7 @@ function readXmlLocalFile() {
             }
         }
     }
-    console.log ('success');
+    console.log('success');
     return hotelsList;
 }
 
-// send getHotelsList request and receive all hotelston hotels list
-async function getHotelsList() {
-    let hotelsList = [];
-    const allHotels = await makeHotelListRequest();
-    const allHotelsJsonString = parser.toJson(allHotels);
-    const allHotelsJson = JSON.parse(allHotelsJsonString);
-    const countries = allHotelsJson['soapenv:Envelope']['soapenv:Body']['xsd:HotelListResponse']['xsd:country'];
-    for (country of countries){
-        if ("xsd:state" in country){
-            const states = Array.isArray(country['xsd:state']) ? country['xsd:state'] : [country['xsd:state']];
-            for (state of states){
-                const cities = Array.isArray(state['xsd:city']) ? state['xsd:city'] : [state['xsd:city']];
-                for (city of cities){ 
-                    hotelsList = hotelsList.concat(city['xsd:hotel']);
-                }
-            }
-        } else {
-            const cities = Array.isArray(country['xsd:city']) ? country['xsd:city'] : [country['xsd:city']];
-            for (city of cities){
-                hotelsList = hotelsList.concat(city['xsd:hotel']);
-            }
-        }
-    }
-    return hotelsList;
-}
