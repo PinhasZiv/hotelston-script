@@ -165,7 +165,7 @@ async function getAllHotelsData(hotelsList) {
     const hotelsData = [];
     let responsesList;
     for (let i = 0; i < hotelsList.length; i++) {
-        // for (let i = 0; i < 1000; i++) { 
+    // for (let i = 0; i < 1000; i++) { 
         const hotel = hotelsList[i];
         const hotelId = hotel['id'];
         hotelsData.push(getHotelData(hotelId));
@@ -204,22 +204,13 @@ function addRowsToCsvFile(data) {
     }
 };
 
-async function readFileFromAWS(path) {
-    let hotelsList;
-    await axios.get(path).then(response => {
-        hotelsList = response.data.hotels;
-    });
-    return hotelsList;
-}
-
 async function main() {
     const begin = new Date();
     // const hotelsList = await getHotelsList(); // using a request to hotelSton
     // const hotelsList = readXmlLocalFile();
     // fs.writeFileSync('/home/pinhas/Documents/PMS/Hotelston/onlyHotels.json', JSON.stringify(hotelsList));
-    const hotelsListPath = "https://amadeus-hotels.s3.eu-central-1.amazonaws.com/hotelston-hotels/onlyHotels-formated.json?response-content-disposition=inline&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEGgaDGV1LWNlbnRyYWwtMSJHMEUCIE7PYpv9EySEHXgx4NTgTHABhnx%2Bi3hNw11UMG%2BvGlhmAiEA4APn6vu7Mn8OUidMELIKnH8tPz06TahZqelUlWw94N8qhAMI0f%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARABGgw3MjI4NjE1OTk2MDciDKo3X6irwF2Y08dcGSrYAnGLEP5a%2BuWM5QD8Y9888ZggbquyqsNMpMds%2FNk3nDbqUiLEX2HkONqaiuJUsjlkVuXqOVZTGQnxYWOGr90aTVoCsZ9RCEutoFn93MQd3eZxr0Euv12F1kVeikXU4UPyf9EWe9OgEVOOZhUB2FL1p5SHbZF2mWxCs%2BTtRIFppAh0TSVPySBe3Qz0NIc%2F2Cnz51u3HRXhr8TugWfMF782rsjbbkjkIEtBQlhCDYmkl1tOv%2F3Qt%2BLMfmV186ekNu0MpMoQeuyv7lMj9MrfcvaEgLmiTpgeyeesLmID7hL7Qk9eZKdtO0pbSOv73b0Mq302rj0ifKPvc%2BnKCOl0UvkpNLrOyOTvNRS73L6HuETXlpMnJ6D0O5QF5G%2BqTWnCjx9uw1Q95l96d2TLaHuFPTpWTkP99iTx6srEmDIJuYqtiaY3dtG%2BjBKMkvJXxo%2FQ1l71cn%2FiIkUXjNwRMNX0uJ4GOrMCPvu24n1N2JwhZ6K%2B6%2FqcomFBI45zqhiTbp3SEpr7M3AUJEviHwg1pknzmizM3N%2FNF9namUmwDu5Cid0tSouq75J7nYLMuSNIznvMfpY6wU2v767I3WsDwdaYAZnLn%2F%2Fu0zUzSUid7Ptt4ZhTpSN%2FEE9yc4zjdLQoL2Za0o9aIUZOMJXbBmRHPV5h440xdf8xWDQima6xq4Wr3a1cPyrq0oZMyNIw0%2FKudy%2BC0wxYsrHJfWIFDd%2BXFh%2Frf8vHuuRF29vElOnWlTF%2BfR3fD7H5AmWm5%2F5p%2FOROUxLwpMaQd6NZHwyUOnoXrLUtxZCYAh%2BBLOLAvGZX3Rb7oWjyYrSdFOxOAk7Umc%2B7UkyXs4wRte%2F4ghudm8FtvbvKvsY0bZs2TiHkMCaZqjdYXTMAUVOo6tCxpw%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20230123T082557Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Credential=ASIA2QTPIVN32GRPSJR7%2F20230123%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Signature=f2018182144bbce4b2498f2de5fbb855e2258c05eda32677ff866bdceadf6fab";
-    const hotels = await readFileFromAWS(hotelsListPath);
-    await getAllHotelsData(hotels);
+    const hotels = require('./script-files/onlyHotels-formated.json');
+    await getAllHotelsData(hotels.hotels);
     const end = new Date();
     const totalRunningTime = end - begin;
     console.log(getMinDiff(begin, end));
