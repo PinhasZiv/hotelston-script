@@ -28,9 +28,8 @@ const hotelListRequestBody =
 
 // creating the request to get hotels list
 async function makeHotelListRequest() {
-    let allHotelsJson;
     let allHotels;
-    const hotelsList = await axios.post(requestURL, hotelListRequestBody, config)
+    await axios.post(requestURL, hotelListRequestBody, config)
         .then(resp => {
             allHotels = resp.data;
         }).catch(err => { console.log(err.response) });
@@ -41,26 +40,11 @@ async function makeHotelListRequest() {
 async function getHotelsList() {
     let hotelsList = [];
     const allHotels = await makeHotelListRequest();
-    const allHotelsJsonString = parser.toJson(allHotels);
-    const allHotelsJson = JSON.parse(allHotelsJsonString);
-    const countries = allHotelsJson['soapenv:Envelope']['soapenv:Body']['xsd:HotelListResponse']['xsd:country'];
-    for (country of countries) {
-        if ("xsd:state" in country) {
-            const states = Array.isArray(country['xsd:state']) ? country['xsd:state'] : [country['xsd:state']];
-            for (state of states) {
-                const cities = Array.isArray(state['xsd:city']) ? state['xsd:city'] : [state['xsd:city']];
-                for (city of cities) {
-                    hotelsList = hotelsList.concat(city['xsd:hotel']);
-                }
-            }
-        } else {
-            const cities = Array.isArray(country['xsd:city']) ? country['xsd:city'] : [country['xsd:city']];
-            for (city of cities) {
-                hotelsList = hotelsList.concat(city['xsd:hotel']);
-            }
-        }
-    }
-    return hotelsList;
+    const regex = /hotel xsd1:id="(.*?)" xsd1:name/g;
+    let hotels = [... allHotels.matchAll(regex)];
+    let hotelsID = hotels.map(hotel => hotel[1]);
+    console.log('hotels:' + hotelsID.length);
+    return hotelsID;
 }
 
 async function getHotelData(hotelId) {
@@ -166,8 +150,7 @@ async function getAllHotelsData(hotelsList) {
     let responsesList;
     for (let i = 0; i < hotelsList.length; i++) {
     // for (let i = 0; i < 1000; i++) { 
-        const hotel = hotelsList[i];
-        const hotelId = hotel['id'];
+        const hotelId = hotelsList[i];
         hotelsData.push(getHotelData(hotelId));
         if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
             responsesList = await Promise.all(hotelsData);
@@ -206,13 +189,9 @@ function addRowsToCsvFile(data) {
 
 async function main() {
     const begin = new Date();
-    // const hotelsList = await getHotelsList(); // using a request to hotelSton
-    // const hotelsList = readXmlLocalFile();
-    // fs.writeFileSync('/home/pinhas/Documents/PMS/Hotelston/onlyHotels.json', JSON.stringify(hotelsList));
-    const hotels = require('./script-files/onlyHotels-formated.json');
-    await getAllHotelsData(hotels.hotels);
+    const hotelsList = await getHotelsList();
+    await getAllHotelsData(hotelsList);
     const end = new Date();
-    const totalRunningTime = end - begin;
     console.log(getMinDiff(begin, end));
 }
 
@@ -227,16 +206,9 @@ function getMinDiff(startDate, endDate) {
 main();
 
 
-// reading all hotels from xml file and convert it to array of hotels.
 function readXmlLocalFile() {
     let hotelsList = [];
-    // const file = '/home/pinhas/Documents/PMS/Hotelston/response-prod.xml';
     const file = '/home/pinhas/Documents/PMS/Hotelston/hotelsList.json';
-    // hotelsList = await getAllHotelsFromXml(file);
-    // const listInJsonString = parser.toJson(res);
-    // fs.writeFileSync('/home/pinhas/Documents/PMS/Hotelston/hotelsList.json', listInJsonString);
-    // const res = fs.readFileSync(file, 'utf-8');
-    // const jsonList = JSON.parse(res);
     const jsonList = require(file);
     const countries = jsonList['soapenv:Envelope']['soapenv:Body']['HotelListResponse']['country'];
     for (country of countries) {
