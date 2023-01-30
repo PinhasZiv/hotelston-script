@@ -38,12 +38,10 @@ async function makeHotelListRequest() {
 
 // send getHotelsList request and receive all hotelston hotels list
 async function getHotelsList() {
-    let hotelsList = [];
     const allHotels = await makeHotelListRequest();
     const regex = /hotel xsd1:id="(.*?)" xsd1:name/g;
     let hotels = [... allHotels.matchAll(regex)];
     let hotelsID = hotels.map(hotel => hotel[1]);
-    console.log('hotels:' + hotelsID.length);
     return hotelsID;
 }
 
@@ -146,6 +144,7 @@ function AddHotelToFailedList(hotelId, error) {
 };
 
 async function getAllHotelsData(hotelsList) {
+    const hotelListLength = hotelsList.length;
     const hotelsData = [];
     let responsesList;
     for (let i = 0; i < hotelsList.length; i++) {
@@ -156,6 +155,10 @@ async function getAllHotelsData(hotelsList) {
             responsesList = await Promise.all(hotelsData);
             addRowsToCsvFile(responsesList);
             hotelsData.length = 0;
+        }
+        // print status to see the script is running properly
+        if (i % 500 === 0){
+            console.log(`read ${i}/${hotelListLength} hotels`);
         }
     }
     if (hotelsData.length > 0) {
