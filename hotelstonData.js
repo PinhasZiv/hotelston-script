@@ -148,8 +148,8 @@ async function getAllHotelsData(hotelsList) {
     const hotelListLength = hotelsList.length;
     let hotelsData = [];
     let responsesList;
-    // for (let i = 0; i < hotelsList.length; i++) {
-    for (let i = 0; i < 10000; i++) { 
+    for (let i = 0; i < hotelsList.length; i++) {
+    // for (let i = 0; i < 10000; i++) { 
         const hotelId = hotelsList[i];
         hotelsData.push(getHotelData(hotelId));
         if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
