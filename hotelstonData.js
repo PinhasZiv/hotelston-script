@@ -68,13 +68,13 @@ async function getHotelData(hotelId) {
             const hotelData = resp.data;
             const hoteldetailsInJsonString = parser.toJson(hotelData);
             const jsonDetails = JSON.parse(hoteldetailsInJsonString);
-            const hotelJson = jsonDetails["soapenv:Envelope"]["soapenv:Body"]["xsd:HotelDetailsResponse"]["xsd:hotel"];
-            if (hotelJson && jsonDetails['soapenv:Envelope']['soapenv:Body']['xsd:HotelDetailsResponse']['xsd1:success']['$t'] === 'true') {
+            const hotelJson = _.get(jsonDetails, "soapenv:Envelope.soapenv:Body.xsd:HotelDetailsResponse.xsd:hotel");
+            if (hotelJson && _.get(jsonDetails, "soapenv:Envelope.soapenv:Body.xsd:HotelDetailsResponse.xsd1:success.$t") === 'true') {
                 log('pullSuccess', hotelId);
                 const hotelParsedData = parseHotelDetails(hotelJson);
                 return hotelParsedData;
             } else {
-                const errorDetails = jsonDetails['soapenv:Envelope']['soapenv:Body']['xsd:HotelDetailsResponse']['xsd1:error']
+                const errorDetails = _.get(jsonDetails, "soapenv:Envelope.soapenv:Body.xsd:HotelDetailsResponse.xsd1:error");
                 log('pullError', hotelId, errorDetails);
                 AddHotelToFailedList(hotelId, errorDetails);
                 return undefined; // need to check if better to return something else
@@ -148,8 +148,8 @@ async function getAllHotelsData(hotelsList) {
     const hotelListLength = hotelsList.length;
     let hotelsData = [];
     let responsesList;
-    for (let i = 0; i < hotelsList.length; i++) {
-    // for (let i = 0; i < 1000; i++) { 
+    // for (let i = 0; i < hotelsList.length; i++) {
+    for (let i = 0; i < 10000; i++) { 
         const hotelId = hotelsList[i];
         hotelsData.push(getHotelData(hotelId));
         if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
