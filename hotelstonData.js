@@ -155,12 +155,13 @@ async function getAllHotelsData(hotelsList) {
         if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
             responsesList = await Promise.all(hotelsData);
             addRowsToCsvFile(responsesList);
-            hotelsData.length = 0;
+            hotelsData = [];
         }
         // print status to see the script is running properly
         if (i % 500 === 0){
             const status = `read ${i}/${hotelListLength} hotels`;
             fs.appendFileSync(logsStatus, status + '\n');
+            console.log(status);
         }
     }
     if (hotelsData.length > 0) {
