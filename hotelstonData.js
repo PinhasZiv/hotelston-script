@@ -146,7 +146,7 @@ function AddHotelToFailedList(hotelId, error) {
 async function getAllHotelsData(hotelsList) {
     const logsStatus = "./script-files/runningStatus.txt";
     const hotelListLength = hotelsList.length;
-    const hotelsData = [];
+    let hotelsData = [];
     let responsesList;
     for (let i = 0; i < hotelsList.length; i++) {
     // for (let i = 0; i < 1000; i++) { 
