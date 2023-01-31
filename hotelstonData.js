@@ -144,6 +144,7 @@ function AddHotelToFailedList(hotelId, error) {
 };
 
 async function getAllHotelsData(hotelsList) {
+    const logsStatus = "./script-files/runningStatus.txt";
     const hotelListLength = hotelsList.length;
     const hotelsData = [];
     let responsesList;
@@ -158,7 +159,8 @@ async function getAllHotelsData(hotelsList) {
         }
         // print status to see the script is running properly
         if (i % 500 === 0){
-            console.log(`read ${i}/${hotelListLength} hotels`);
+            const status = `read ${i}/${hotelListLength} hotels`;
+            fs.appendFileSync(logsStatus, status + '\n');
         }
     }
     if (hotelsData.length > 0) {
