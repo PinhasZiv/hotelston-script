@@ -148,10 +148,17 @@ async function getAllHotelsData(hotelsList) {
     const hotelListLength = hotelsList.length;
     let hotelsData = [];
     let responsesList;
-    for (let i = 0; i < hotelsList.length; i++) {
-    // for (let i = 0; i < 10000; i++) { 
+    // for (let i = 0; i < hotelsList.length; i++) {
+    for (let i = 0; i < 1000; i++) { 
         const hotelId = hotelsList[i];
-        hotelsData.push(getHotelData(hotelId));
+        try {
+            hotelsData.push(getHotelData(hotelId));
+        } catch (err) {
+            const errorDetails = `${_.get(err, "message")}\n${_.get(err, "response.data")}`;
+            log('pullError', hotelId, errorDetails);
+            AddHotelToFailedList(hotelId, errorDetails);
+        };
+        
         if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
             responsesList = await Promise.all(hotelsData);
             addRowsToCsvFile(responsesList);
