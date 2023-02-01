@@ -148,8 +148,8 @@ async function getAllHotelsData(hotelsList) {
     const hotelListLength = hotelsList.length;
     let hotelsData = [];
     let responsesList;
-    // for (let i = 0; i < hotelsList.length; i++) {
-    for (let i = 0; i < 1000; i++) { 
+    for (let i = 0; i < hotelsList.length; i++) {
+    // for (let i = 0; i < 1000; i++) { 
         const hotelId = hotelsList[i];
         try {
             hotelsData.push(getHotelData(hotelId));
@@ -159,7 +159,7 @@ async function getAllHotelsData(hotelsList) {
             AddHotelToFailedList(hotelId, errorDetails);
         };
         
-        if ((i !== 0 && i % 2 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
+        if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
             responsesList = await Promise.all(hotelsData);
             addRowsToCsvFile(responsesList);
             hotelsData = [];
@@ -200,9 +200,22 @@ function addRowsToCsvFile(data) {
     }
 };
 
+let COUNTER = 0;
+
 async function main() {
     const begin = new Date();
-    const hotelsList = await getHotelsList();
+    let hotelsList;
+    try {
+        hotelsList = await getHotelsList();
+    } catch (err) {
+        if (COUNTER > 5){
+            console.log('failed to load hotels list. counter = ' + COUNTER);
+            COUNTER++;
+            setTimeout(main, 60 * 1000);
+        } else {
+            return;
+        }
+    }
     await getAllHotelsData(hotelsList);
     const end = new Date();
     console.log(getMinDiff(begin, end));
