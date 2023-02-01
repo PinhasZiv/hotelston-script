@@ -159,7 +159,7 @@ async function getAllHotelsData(hotelsList) {
             AddHotelToFailedList(hotelId, errorDetails);
         };
         
-        if ((i !== 0 && i % 4 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
+        if ((i !== 0 && i % 2 === 0) || i === hotelsList.length - 1) { // API limit of 4 concurrent hotel details requests.
             responsesList = await Promise.all(hotelsData);
             addRowsToCsvFile(responsesList);
             hotelsData = [];
